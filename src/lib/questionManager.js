@@ -1,17 +1,8 @@
 import * as XLSX from 'xlsx';
-import { QUESTIONS as MOCK_QUESTIONS, EXAMS as MOCK_EXAMS } from '../data/mockData.js';
 import { db } from './firebase.js';
-import { collection, getDocs, doc, setDoc, deleteDoc, getDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, getDoc, updateDoc } from 'firebase/firestore';
 
-const DELETED_BUILTIN_KEY = 'deleted_builtin_exams';
-
-// Get deleted built-in exams (keep in localStorage as it's a local preference)
-const getDeletedBuiltinExams = () => {
-    const stored = localStorage.getItem(DELETED_BUILTIN_KEY);
-    return stored ? JSON.parse(stored) : [];
-};
-
-// Fetch all exams (merged mock + Firestore)
+// Fetch all exams (Firestore only)
 export const fetchExams = async () => {
     console.log("Fetching exams (Firestore)...");
     try {
@@ -22,12 +13,7 @@ export const fetchExams = async () => {
             firestoreExams.push(doc.data());
         });
 
-        // Filter mock exams
-        const deletedBuiltinIds = new Set(getDeletedBuiltinExams());
-        const validMockExams = MOCK_EXAMS.filter(e => !deletedBuiltinIds.has(e.id));
-
-        // Merge (Firestore takes precedence if IDs collide, though they shouldn't)
-        let mergedExams = [...validMockExams, ...firestoreExams];
+        let mergedExams = [...firestoreExams];
 
         // Apply archive status
         const archivedIds = new Set(getArchivedExams());
@@ -39,17 +25,12 @@ export const fetchExams = async () => {
         return mergedExams.sort((a, b) => b.year - a.year);
     } catch (error) {
         console.error("Error fetching exams:", error);
-        return MOCK_EXAMS;
+        return [];
     }
 };
 
 // Fetch questions for a specific exam
 export const fetchQuestionsForExam = async (examId) => {
-    // Check if it's a mock exam
-    if (MOCK_QUESTIONS[examId]) {
-        return MOCK_QUESTIONS[examId];
-    }
-
     // Check Firestore
     try {
         const docRef = doc(db, "exams", examId);
@@ -81,19 +62,20 @@ export const saveExam = async (examId, examData) => {
     }
 };
 
+// Update Exam Metadata (Year, Subject)
+export const updateExamMetadata = async (examId, metadata) => {
+    try {
+        const examRef = doc(db, "exams", examId);
+        await updateDoc(examRef, metadata);
+        return true;
+    } catch (error) {
+        console.error("Error updating exam metadata:", error);
+        return false;
+    }
+};
+
 // Delete exam
 export const deleteExam = async (examId) => {
-    // Check if it's a built-in exam
-    const isBuiltIn = MOCK_EXAMS.some(e => e.id === examId);
-    if (isBuiltIn) {
-        const deleted = getDeletedBuiltinExams();
-        if (!deleted.includes(examId)) {
-            deleted.push(examId);
-            localStorage.setItem(DELETED_BUILTIN_KEY, JSON.stringify(deleted));
-        }
-        return true;
-    }
-
     // Delete from Firestore
     try {
         await deleteDoc(doc(db, "exams", examId));

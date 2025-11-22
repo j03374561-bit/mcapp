@@ -3,35 +3,34 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "../../comp
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { Lock, User, AlertCircle } from "lucide-react";
-import { USERS } from "../../data/mockData.js";
+import { authenticateUser } from '../../lib/userManager';
 
 export function LoginScreen({ onLogin }) {
-    const [isLoading, setIsLoading] = useState(false);
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        setIsLoading(true);
-        setError("");
+        setError('');
+        setLoading(true);
 
-        // Simulate network request
-        setTimeout(() => {
-            // Check if user exists
-            const user = USERS.find(
-                u => u.username === username && u.password === password
-            );
-
+        try {
+            const user = await authenticateUser(username, password);
             if (user) {
-                setIsLoading(false);
-                onLogin({ name: user.name, role: user.role });
+                onLogin(user);
             } else {
-                setIsLoading(false);
-                setError("Invalid username or password");
+                setLoading(false);
+                setError('Invalid username or password');
             }
-        }, 1000);
+        } catch (err) {
+            console.error(err);
+            setLoading(false);
+            setError('Login failed. Please try again.');
+        }
     };
+
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-950 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-900 to-slate-950 p-4">
@@ -90,8 +89,8 @@ export function LoginScreen({ onLogin }) {
                         </div>
                     </CardContent>
                     <CardFooter>
-                        <Button className="w-full" type="submit" isLoading={isLoading}>
-                            Sign In
+                        <Button className="w-full" type="submit" disabled={loading}>
+                            {loading ? 'Signing in...' : 'Sign In'}
                         </Button>
                     </CardFooter>
                 </form>

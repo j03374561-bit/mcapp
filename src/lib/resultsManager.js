@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 
 import { db } from './firebase.js';
-import { collection, addDoc, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, where, writeBatch, doc } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'exam_results';
 
@@ -43,6 +43,46 @@ export const getAllResults = async () => {
 // Clear all results (Not implemented for Firestore for safety)
 export const clearAllResults = async () => {
     console.warn("Clear all results not implemented for Firestore");
+};
+
+// Delete results for specific exams
+export const deleteResultsForExams = async (examKeys) => {
+    if (!examKeys || examKeys.length === 0) return 0;
+
+    let deletedCount = 0;
+    const batch = writeBatch(db);
+    let batchCount = 0;
+
+    try {
+        // Since we can't easily do a generic "OR" query for composite keys, 
+        // we'll fetch all and filter, or query one by one. 
+        // Querying one by one is safer for large datasets.
+
+        for (const key of examKeys) {
+            const [year, subject] = key.split('-');
+            const q = query(
+                collection(db, COLLECTION_NAME),
+                where("examYear", "==", parseInt(year)),
+                where("subject", "==", subject)
+            );
+
+            const snapshot = await getDocs(q);
+            snapshot.forEach((document) => {
+                batch.delete(doc(db, COLLECTION_NAME, document.id));
+                batchCount++;
+                deletedCount++;
+            });
+        }
+
+        if (batchCount > 0) {
+            await batch.commit();
+        }
+
+        return deletedCount;
+    } catch (error) {
+        console.error("Error deleting results:", error);
+        throw error;
+    }
 };
 
 // Export results to Excel
