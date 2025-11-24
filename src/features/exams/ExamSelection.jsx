@@ -8,25 +8,25 @@ import { fetchExams, deleteExam } from '../../lib/questionManager';
 export function ExamSelection({ onSelectExam }) {
     const [exams, setExams] = useState([]);
     const [loading, setLoading] = useState(true);
-
-    const loadExams = async () => {
-        setLoading(true);
-        const data = await fetchExams();
-        // Filter out archived exams for students
-        setExams(data.filter(e => e.status !== 'Archived'));
-        setLoading(false);
-    };
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
+        const loadExams = async () => {
+            setLoading(true);
+            const data = await fetchExams();
+            // Filter out archived exams for students
+            setExams(data.filter(e => e.status !== 'Archived'));
+            setLoading(false);
+        };
         loadExams();
-    }, []);
+    }, [refreshKey]);
 
     const handleDelete = async (e, examId) => {
         e.stopPropagation();
         if (window.confirm('Are you sure you want to delete this exam? This action cannot be undone.')) {
             const success = await deleteExam(examId);
             if (success) {
-                loadExams();
+                setRefreshKey(k => k + 1);
             }
         }
     };

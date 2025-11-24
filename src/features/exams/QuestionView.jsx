@@ -83,6 +83,7 @@ export function QuestionView({ exam, onBack, userName }) {
             const percentage = ((score / total) * 100).toFixed(1);
 
             // Save result to Firestore
+            // Save result to Firestore
             await saveResult({
                 userName: userName || 'Anonymous',
                 examYear: exam.year,
@@ -90,6 +91,7 @@ export function QuestionView({ exam, onBack, userName }) {
                 score: score,
                 totalQuestions: total,
                 percentage: parseFloat(percentage),
+                details: answers // Save detailed answers
             });
 
             // Show results screen
@@ -277,7 +279,7 @@ export function QuestionView({ exam, onBack, userName }) {
     }
 
     const isCorrect = isSubmitted && selectedOption === currentQuestion.correctAnswer;
-    const isWrong = isSubmitted && selectedOption !== currentQuestion.correctAnswer;
+
 
     // Question Screen
     return (

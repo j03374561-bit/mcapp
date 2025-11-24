@@ -10,7 +10,6 @@ import { parseExcelUsers, saveUsers, generateUserTemplate } from '../../lib/user
 export function AdminUpload({ onBack }) {
     const [uploading, setUploading] = useState(false);
     const [message, setMessage] = useState(null);
-    const [uploadedCount, setUploadedCount] = useState(0);
 
     // User Upload State
     const [uploadingUsers, setUploadingUsers] = useState(false);
@@ -102,7 +101,7 @@ export function AdminUpload({ onBack }) {
                     await saveExam(examId, examData);
                 }
 
-                setUploadedCount(totalQuestions);
+
                 setMessage({ type: 'success', text: `Successfully uploaded ${totalQuestions} questions across ${examIds.length} exam(s)!` });
                 loadData(); // Refresh list to show new exams
             }

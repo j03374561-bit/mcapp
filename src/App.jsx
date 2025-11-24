@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { LoginScreen } from './features/auth/LoginScreen';
 import { ExamSelection } from './features/exams/ExamSelection';
 import { QuestionView } from './features/exams/QuestionView';
@@ -55,8 +55,8 @@ function App() {
                             <button
                                 onClick={() => setAdminMode(!adminMode)}
                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${adminMode
-                                        ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/50'
-                                        : 'text-slate-400 hover:text-white'
+                                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/50'
+                                    : 'text-slate-400 hover:text-white'
                                     }`}
                             >
                                 {adminMode ? 'Exit Admin' : 'Admin Mode'}

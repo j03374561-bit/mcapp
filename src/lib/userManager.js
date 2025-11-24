@@ -1,5 +1,5 @@
 import { db } from './firebase.js';
-import { collection, getDocs, doc, setDoc, query, where, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, query, where, writeBatch } from 'firebase/firestore';
 import * as XLSX from 'xlsx';
 
 

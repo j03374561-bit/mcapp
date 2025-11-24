@@ -4,13 +4,14 @@ import { getAuth } from "firebase/auth";
 
 // TODO: Replace with your Firebase configuration
 const firebaseConfig = {
-  apiKey: "YOUR_ACTUAL_API_KEY", // Placeholder replaced
-  authDomain: "multiple-answer-app.firebaseapp.com",
-  projectId: "multiple-answer-app",
-  storageBucket: "multiple-answer-app.firebasestorage.app",
-  messagingSenderId: "19048965230",
-  appId: "1:19048965230:web:825af4d93e336c73eaf27f"
+  apiKey: "AIzaSyAMWiuHO4dybYHqAc3zPksxV1Yb7eD2BGo",
+  authDomain: "mc-app-v1-a39e7.firebaseapp.com",
+  projectId: "mc-app-v1-a39e7",
+  storageBucket: "mc-app-v1-a39e7.firebasestorage.app",
+  messagingSenderId: "582691403066",
+  appId: "1:582691403066:web:1847e3280d33940648cc03"
 };
+
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);

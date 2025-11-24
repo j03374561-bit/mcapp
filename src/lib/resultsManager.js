@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 
 import { db } from './firebase.js';
-import { collection, addDoc, getDocs, query, orderBy, limit, deleteDoc, where, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, orderBy, Timestamp, writeBatch, doc } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'exam_results';
 
@@ -102,25 +102,50 @@ export const exportToExcel = async (selectedExams = null) => {
         return;
     }
 
+    // Determine max number of questions to set up dynamic columns
+    let maxQuestions = 0;
+    results.forEach(r => {
+        if (r.totalQuestions > maxQuestions) maxQuestions = r.totalQuestions;
+    });
+
     // Prepare data for Excel
-    const excelData = results.map((result, index) => ({
-        'No.': index + 1,
-        'Student Name': result.userName,
-        'Exam Year': result.examYear,
-        'Subject': result.subject,
-        'Score': result.score,
-        'Total Questions': result.totalQuestions,
-        'Percentage': `${result.percentage}%`,
-        'Status': result.percentage >= 70 ? 'Pass' : result.percentage >= 50 ? 'Fair' : 'Fail',
-        'Date': new Date(result.timestamp).toLocaleString(),
-        'Duration (min)': result.duration || 'N/A'
-    }));
+    const excelData = results.map((result, index) => {
+        const row = {
+            'No.': index + 1,
+            'Student Name': result.userName,
+            'Exam Year': result.examYear,
+            'Subject': result.subject,
+            'Score': result.score,
+            'Total Questions': result.totalQuestions,
+            'Percentage': `${result.percentage}%`,
+            'Status': result.percentage >= 70 ? 'Pass' : result.percentage >= 50 ? 'Fair' : 'Fail',
+            'Date': new Date(result.timestamp).toLocaleString(),
+            'Duration (min)': result.duration || 'N/A'
+        };
+
+        // Add detailed answers if available
+        if (result.details) {
+            // Since details is an object keyed by index, we can just access it directly
+            for (let i = 0; i < maxQuestions; i++) {
+                const detail = result.details[i];
+                if (detail) {
+                    row[`Q${i + 1} Answer`] = detail.selected ? detail.selected.toUpperCase() : '-';
+                    row[`Q${i + 1} Correct`] = detail.correct ? detail.correct.toUpperCase() : '-';
+                } else {
+                    row[`Q${i + 1} Answer`] = '-';
+                    row[`Q${i + 1} Correct`] = '-';
+                }
+            }
+        }
+
+        return row;
+    });
 
     // Create worksheet
     const worksheet = XLSX.utils.json_to_sheet(excelData);
 
     // Set column widths
-    worksheet['!cols'] = [
+    const cols = [
         { wch: 5 },  // No.
         { wch: 20 }, // Student Name
         { wch: 12 }, // Exam Year
@@ -132,6 +157,14 @@ export const exportToExcel = async (selectedExams = null) => {
         { wch: 20 }, // Date
         { wch: 12 }, // Duration
     ];
+
+    // Add widths for dynamic columns
+    for (let i = 0; i < maxQuestions; i++) {
+        cols.push({ wch: 10 }); // Answer
+        cols.push({ wch: 10 }); // Correct
+    }
+
+    worksheet['!cols'] = cols;
 
     // Create workbook
     const workbook = XLSX.utils.book_new();
@@ -150,7 +183,7 @@ export const exportSingleResultToExcel = (result) => {
         'Subject': result.subject,
         'Score': result.score,
         'Total Questions': result.totalQuestions,
-        'Percentage': `${result.percentage}%`,
+        'Percentage': `${result.percentage}% `,
         'Status': result.percentage >= 50 ? 'Pass' : 'Fail',
         'Date': new Date().toLocaleString(),
     }];
@@ -172,7 +205,7 @@ export const exportSingleResultToExcel = (result) => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Result');
 
-    const fileName = `exam-result-${result.examYear}-${result.userName || 'student'}-${Date.now()}.xlsx`;
+    const fileName = `exam - result - ${result.examYear} -${result.userName || 'student'} -${Date.now()}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 };
 
@@ -195,17 +228,39 @@ export const exportToMarkdown = async (selectedExams = null) => {
 
     let content = `# All Exam Results Report\n`;
     content += `**Generated Date:** ${new Date().toLocaleString()}\n\n`;
-    content += `| No. | Student Name | Exam Year | Subject | Score | Percentage | Status | Date |\n`;
-    content += `|---|---|---|---|---|---|---|---|\n`;
 
     results.forEach((result, index) => {
         const status = result.percentage >= 70 ? 'Pass' : result.percentage >= 50 ? 'Fair' : 'Fail';
         const statusIcon = result.percentage >= 50 ? '✅' : '❌';
 
-        content += `| ${index + 1} | ${result.userName} | ${result.examYear} | ${result.subject} | ${result.score}/${result.totalQuestions} | ${result.percentage}% | ${statusIcon} ${status} | ${new Date(result.timestamp).toLocaleString()} |\n`;
+        content += `## ${index + 1}. ${result.userName} - ${result.examYear} ${result.subject}\n`;
+        content += `- **Score:** ${result.score}/${result.totalQuestions} (${result.percentage}%)\n`;
+        content += `- **Status:** ${statusIcon} ${status}\n`;
+        content += `- **Date:** ${new Date(result.timestamp).toLocaleString()}\n\n`;
+
+        if (result.details) {
+            content += `### Question Breakdown\n`;
+            content += `| Q# | Your Answer | Correct Answer | Status |\n`;
+            content += `|---|---|---|---|\n`;
+
+            // Iterate through details
+            // Assuming details is object { 0: {...}, 1: {...} }
+            const maxQ = result.totalQuestions || 0;
+            for (let i = 0; i < maxQ; i++) {
+                const detail = result.details[i];
+                if (detail) {
+                    const icon = detail.isCorrect ? '✅' : '❌';
+                    content += `| ${i + 1} | ${detail.selected ? detail.selected.toUpperCase() : '-'} | ${detail.correct ? detail.correct.toUpperCase() : '-'} | ${icon} |\n`;
+                }
+            }
+            content += `\n`;
+        } else {
+            content += `*Detailed answers not available for this record.*\n\n`;
+        }
+        content += `---\n\n`;
     });
 
-    content += `\n---\n*Total Records: ${results.length}*`;
+    content += `\n*Total Records: ${results.length}*`;
 
     // Create download
     const blob = new Blob([content], { type: 'text/markdown' });
