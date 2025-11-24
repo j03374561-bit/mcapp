@@ -3,6 +3,7 @@ import { LoginScreen } from './features/auth/LoginScreen';
 import { ExamSelection } from './features/exams/ExamSelection';
 import { QuestionView } from './features/exams/QuestionView';
 import { AdminUpload } from './features/admin/AdminUpload';
+import { StudentResults } from './features/results/StudentResults';
 
 function App() {
     const [user, setUser] = useState(() => {
@@ -17,6 +18,7 @@ function App() {
     });
     const [selectedExam, setSelectedExam] = useState(null);
     const [adminMode, setAdminMode] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
 
     const handleLogin = (userData) => {
         setUser(userData);
@@ -51,7 +53,7 @@ function App() {
                     </h1>
                     <div className="flex items-center gap-4">
                         <span className="text-slate-400">Welcome, {user.name}</span>
-                        {user.role === 'admin' && (
+                        {user.role === 'admin' ? (
                             <button
                                 onClick={() => setAdminMode(!adminMode)}
                                 className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${adminMode
@@ -60,6 +62,16 @@ function App() {
                                     }`}
                             >
                                 {adminMode ? 'Exit Admin' : 'Admin Mode'}
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setShowHistory(!showHistory)}
+                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${showHistory
+                                    ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/50'
+                                    : 'text-slate-400 hover:text-white'
+                                    }`}
+                            >
+                                {showHistory ? 'Back to Exams' : 'My Results'}
                             </button>
                         )}
                         <button
@@ -73,7 +85,9 @@ function App() {
 
                 <main>
                     {adminMode ? (
-                        <AdminUpload />
+                        <AdminUpload onBack={() => setAdminMode(false)} />
+                    ) : showHistory ? (
+                        <StudentResults userName={user.username} onBack={() => setShowHistory(false)} />
                     ) : selectedExam ? (
                         <QuestionView exam={selectedExam} onBack={handleBackToExams} userName={user.name} />
                     ) : (

@@ -130,13 +130,10 @@ export const exportToExcel = async (selectedExams = null) => {
                 const detail = result.details[i];
                 if (detail) {
                     const answerText = detail.selectedText ? `: ${detail.selectedText}` : '';
-                    const correctText = detail.correctText ? `: ${detail.correctText}` : '';
 
                     row[`Q${i + 1} Answer`] = detail.selected ? `${detail.selected.toUpperCase()}${answerText}` : '-';
-                    row[`Q${i + 1} Correct`] = detail.correct ? `${detail.correct.toUpperCase()}${correctText}` : '-';
                 } else {
                     row[`Q${i + 1} Answer`] = '-';
-                    row[`Q${i + 1} Correct`] = '-';
                 }
             }
         }
@@ -164,7 +161,6 @@ export const exportToExcel = async (selectedExams = null) => {
     // Add widths for dynamic columns - wider for text
     for (let i = 0; i < maxQuestions; i++) {
         cols.push({ wch: 30 }); // Answer
-        cols.push({ wch: 30 }); // Correct
     }
 
     worksheet['!cols'] = cols;
@@ -180,21 +176,41 @@ export const exportToExcel = async (selectedExams = null) => {
 
 // Export single result to Excel
 export const exportSingleResultToExcel = (result) => {
-    const excelData = [{
+    const row = {
         'Student Name': result.userName || 'Anonymous',
         'Exam Year': result.examYear,
         'Subject': result.subject,
         'Score': result.score,
         'Total Questions': result.totalQuestions,
-        'Percentage': `${result.percentage}% `,
+        'Percentage': `${result.percentage}%`,
         'Status': result.percentage >= 50 ? 'Pass' : 'Fail',
         'Date': new Date().toLocaleString(),
-    }];
+    };
+
+    // Add detailed answers if available
+    if (result.details) {
+        const maxQuestions = result.totalQuestions;
+        for (let i = 0; i < maxQuestions; i++) {
+            const detail = result.details[i];
+            if (detail) {
+                const answerText = detail.selectedText ? `: ${detail.selectedText}` : '';
+                const correctText = detail.correctText ? `: ${detail.correctText}` : '';
+
+                row[`Q${i + 1} Answer`] = detail.selected ? `${detail.selected.toUpperCase()}${answerText}` : '-';
+                row[`Q${i + 1} Correct`] = detail.correct ? `${detail.correct.toUpperCase()}${correctText}` : '-';
+            } else {
+                row[`Q${i + 1} Answer`] = '-';
+                row[`Q${i + 1} Correct`] = '-';
+            }
+        }
+    }
+
+    const excelData = [row];
 
     const worksheet = XLSX.utils.json_to_sheet(excelData);
 
     // Set column widths
-    worksheet['!cols'] = [
+    const cols = [
         { wch: 20 }, // Student Name
         { wch: 12 }, // Exam Year
         { wch: 15 }, // Subject
@@ -205,10 +221,20 @@ export const exportSingleResultToExcel = (result) => {
         { wch: 20 }, // Date
     ];
 
+    // Add widths for dynamic columns
+    if (result.details) {
+        for (let i = 0; i < result.totalQuestions; i++) {
+            cols.push({ wch: 30 }); // Answer
+            cols.push({ wch: 30 }); // Correct
+        }
+    }
+
+    worksheet['!cols'] = cols;
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Result');
 
-    const fileName = `exam - result - ${result.examYear} -${result.userName || 'student'} -${Date.now()}.xlsx`;
+    const fileName = `exam-result-${result.examYear}-${result.userName || 'student'}-${Date.now()}.xlsx`;
     XLSX.writeFile(workbook, fileName);
 };
 
@@ -243,8 +269,8 @@ export const exportToMarkdown = async (selectedExams = null) => {
 
         if (result.details) {
             content += `### Question Breakdown\n`;
-            content += `| Q# | Question | Your Answer | Correct Answer | Status |\n`;
-            content += `|---|---|---|---|---|\n`;
+            content += `| Q# | Question | Your Answer | Status |\n`;
+            content += `|---|---|---|---|\n`;
 
             // Iterate through details
             // Assuming details is object { 0: {...}, 1: {...} }
@@ -255,9 +281,8 @@ export const exportToMarkdown = async (selectedExams = null) => {
                     const icon = detail.isCorrect ? '✅' : '❌';
                     const qText = detail.questionText ? detail.questionText.replace(/\|/g, '-') : '-';
                     const aText = detail.selectedText ? ` (${detail.selectedText})` : '';
-                    const cText = detail.correctText ? ` (${detail.correctText})` : '';
 
-                    content += `| ${i + 1} | ${qText} | ${detail.selected ? detail.selected.toUpperCase() + aText : '-'} | ${detail.correct ? detail.correct.toUpperCase() + cText : '-'} | ${icon} |\n`;
+                    content += `| ${i + 1} | ${qText} | ${detail.selected ? detail.selected.toUpperCase() + aText : '-'} | ${icon} |\n`;
                 }
             }
             content += `\n`;
