@@ -129,8 +129,11 @@ export const exportToExcel = async (selectedExams = null) => {
             for (let i = 0; i < maxQuestions; i++) {
                 const detail = result.details[i];
                 if (detail) {
-                    row[`Q${i + 1} Answer`] = detail.selected ? detail.selected.toUpperCase() : '-';
-                    row[`Q${i + 1} Correct`] = detail.correct ? detail.correct.toUpperCase() : '-';
+                    const answerText = detail.selectedText ? `: ${detail.selectedText}` : '';
+                    const correctText = detail.correctText ? `: ${detail.correctText}` : '';
+
+                    row[`Q${i + 1} Answer`] = detail.selected ? `${detail.selected.toUpperCase()}${answerText}` : '-';
+                    row[`Q${i + 1} Correct`] = detail.correct ? `${detail.correct.toUpperCase()}${correctText}` : '-';
                 } else {
                     row[`Q${i + 1} Answer`] = '-';
                     row[`Q${i + 1} Correct`] = '-';
@@ -158,10 +161,10 @@ export const exportToExcel = async (selectedExams = null) => {
         { wch: 12 }, // Duration
     ];
 
-    // Add widths for dynamic columns
+    // Add widths for dynamic columns - wider for text
     for (let i = 0; i < maxQuestions; i++) {
-        cols.push({ wch: 10 }); // Answer
-        cols.push({ wch: 10 }); // Correct
+        cols.push({ wch: 30 }); // Answer
+        cols.push({ wch: 30 }); // Correct
     }
 
     worksheet['!cols'] = cols;
@@ -240,8 +243,8 @@ export const exportToMarkdown = async (selectedExams = null) => {
 
         if (result.details) {
             content += `### Question Breakdown\n`;
-            content += `| Q# | Your Answer | Correct Answer | Status |\n`;
-            content += `|---|---|---|---|\n`;
+            content += `| Q# | Question | Your Answer | Correct Answer | Status |\n`;
+            content += `|---|---|---|---|---|\n`;
 
             // Iterate through details
             // Assuming details is object { 0: {...}, 1: {...} }
@@ -250,7 +253,11 @@ export const exportToMarkdown = async (selectedExams = null) => {
                 const detail = result.details[i];
                 if (detail) {
                     const icon = detail.isCorrect ? '✅' : '❌';
-                    content += `| ${i + 1} | ${detail.selected ? detail.selected.toUpperCase() : '-'} | ${detail.correct ? detail.correct.toUpperCase() : '-'} | ${icon} |\n`;
+                    const qText = detail.questionText ? detail.questionText.replace(/\|/g, '-') : '-';
+                    const aText = detail.selectedText ? ` (${detail.selectedText})` : '';
+                    const cText = detail.correctText ? ` (${detail.correctText})` : '';
+
+                    content += `| ${i + 1} | ${qText} | ${detail.selected ? detail.selected.toUpperCase() + aText : '-'} | ${detail.correct ? detail.correct.toUpperCase() + cText : '-'} | ${icon} |\n`;
                 }
             }
             content += `\n`;

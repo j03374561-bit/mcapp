@@ -59,13 +59,20 @@ export function QuestionView({ exam, onBack, userName }) {
         if (!selectedOption) return;
         setIsSubmitted(true);
 
+        // Find text for selected and correct options
+        const selectedOptionObj = currentQuestion.options.find(o => o.id === selectedOption);
+        const correctOptionObj = currentQuestion.options.find(o => o.id === currentQuestion.correctAnswer);
+
         // Store the answer
         setAnswers(prev => ({
             ...prev,
             [currentQuestionIndex]: {
                 questionId: currentQuestion.id,
+                questionText: currentQuestion.text,
                 selected: selectedOption,
+                selectedText: selectedOptionObj ? selectedOptionObj.text : '',
                 correct: currentQuestion.correctAnswer,
+                correctText: correctOptionObj ? correctOptionObj.text : '',
                 isCorrect: selectedOption === currentQuestion.correctAnswer
             }
         }));
