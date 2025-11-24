@@ -193,12 +193,15 @@ export const exportSingleResultToExcel = (result) => {
         for (let i = 0; i < maxQuestions; i++) {
             const detail = result.details[i];
             if (detail) {
+                const questionText = detail.questionText || '-';
                 const answerText = detail.selectedText ? `: ${detail.selectedText}` : '';
                 const correctText = detail.correctText ? `: ${detail.correctText}` : '';
 
+                row[`Q${i + 1} Question`] = questionText;
                 row[`Q${i + 1} Answer`] = detail.selected ? `${detail.selected.toUpperCase()}${answerText}` : '-';
                 row[`Q${i + 1} Correct`] = detail.correct ? `${detail.correct.toUpperCase()}${correctText}` : '-';
             } else {
+                row[`Q${i + 1} Question`] = '-';
                 row[`Q${i + 1} Answer`] = '-';
                 row[`Q${i + 1} Correct`] = '-';
             }
@@ -224,6 +227,7 @@ export const exportSingleResultToExcel = (result) => {
     // Add widths for dynamic columns
     if (result.details) {
         for (let i = 0; i < result.totalQuestions; i++) {
+            cols.push({ wch: 50 }); // Question
             cols.push({ wch: 30 }); // Answer
             cols.push({ wch: 30 }); // Correct
         }
