@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/Ca
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Upload, Download, Trash2, FileSpreadsheet, CheckCircle2, AlertCircle, FileText, Archive, Users, Pencil, X, Save } from 'lucide-react';
-import { parseExcelQuestions, saveExam, generateTemplate, fetchExams, toggleExamArchive, updateExamMetadata } from '../../lib/questionManager';
+import { parseExcelQuestions, saveExam, generateTemplate, fetchExams, toggleExamArchive, updateExamMetadata, fetchQuestionsForExam } from '../../lib/questionManager';
 import { getUniqueExamsFromResults, exportToMarkdown, exportToExcel, deleteResultsForExams } from '../../lib/resultsManager';
 import { parseExcelUsers, saveUsers, generateUserTemplate } from '../../lib/userManager';
 
@@ -83,8 +83,27 @@ export function AdminUpload({ onBack }) {
             } else {
                 // Upload each exam found in the file
                 for (const examId of examIds) {
-                    const questions = questionsByExam[examId];
-                    totalQuestions += questions.length;
+                    const newQuestions = questionsByExam[examId];
+                    totalQuestions += newQuestions.length;
+
+                    // Fetch existing exam data
+                    const existingExam = await fetchQuestionsForExam(examId);
+                    const existingQuestions = existingExam || [];
+
+                    // Merge questions: combine existing and new, remove duplicates by question id
+                    const questionMap = new Map();
+
+                    // Add existing questions
+                    existingQuestions.forEach(q => {
+                        questionMap.set(q.id, q);
+                    });
+
+                    // Add/overwrite with new questions
+                    newQuestions.forEach(q => {
+                        questionMap.set(q.id, q);
+                    });
+
+                    const mergedQuestions = Array.from(questionMap.values());
 
                     // Infer metadata
                     const year = parseInt(examId.replace(/\D/g, '')) || new Date().getFullYear();
@@ -94,8 +113,8 @@ export function AdminUpload({ onBack }) {
                         year: year,
                         subject: 'Custom Exam', // Default subject, could be improved
                         status: 'Available',
-                        totalQuestions: questions.length,
-                        questions: questions
+                        totalQuestions: mergedQuestions.length,
+                        questions: mergedQuestions
                     };
 
                     await saveExam(examId, examData);
