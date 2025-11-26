@@ -145,8 +145,18 @@ export function AdminUpload({ onBack }) {
             if (users.length === 0) {
                 setUserMessage({ type: 'error', text: 'No valid users found.' });
             } else {
-                await saveUsers(users);
-                setUserMessage({ type: 'success', text: `Successfully imported ${users.length} users!` });
+                const stats = await saveUsers(users);
+                if (stats.skipped > 0) {
+                    setUserMessage({
+                        type: 'success',
+                        text: `Imported ${stats.added} new users. Skipped ${stats.skipped} existing users.`
+                    });
+                } else {
+                    setUserMessage({
+                        type: 'success',
+                        text: `Successfully imported all ${stats.added} users!`
+                    });
+                }
             }
         } catch (error) {
             console.error(error);

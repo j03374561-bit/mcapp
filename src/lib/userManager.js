@@ -86,16 +86,35 @@ export const parseExcelUsers = (file) => {
     });
 };
 
-// Save users to Firestore (Batch)
+// Save users to Firestore (Batch) - Skip existing accounts
 export const saveUsers = async (users) => {
-    const batch = writeBatch(db);
-
-    users.forEach(user => {
-        const userRef = doc(db, USERS_COLLECTION, user.username);
-        batch.set(userRef, user);
+    // Fetch all existing usernames
+    const existingUsersSnapshot = await getDocs(collection(db, USERS_COLLECTION));
+    const existingUsernames = new Set();
+    existingUsersSnapshot.forEach(doc => {
+        existingUsernames.add(doc.id); // doc.id is the username
     });
 
-    await batch.commit();
+    // Filter out users that already exist
+    const newUsers = users.filter(user => !existingUsernames.has(user.username));
+    const skippedCount = users.length - newUsers.length;
+
+    // Only proceed if there are new users to add
+    if (newUsers.length > 0) {
+        const batch = writeBatch(db);
+        newUsers.forEach(user => {
+            const userRef = doc(db, USERS_COLLECTION, user.username);
+            batch.set(userRef, user);
+        });
+        await batch.commit();
+    }
+
+    // Return statistics
+    return {
+        added: newUsers.length,
+        skipped: skippedCount,
+        total: users.length
+    };
 };
 
 // Generate User Template
